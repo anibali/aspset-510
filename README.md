@@ -9,6 +9,23 @@ subjects performing 30 sports-related actions each, for a total of 510 action cl
 This repository contains Python code for working with ASPset-510.
 
 
+## Requirements
+
+### Mandatory
+
+* python >= 3.6
+* numpy
+* [ezc3d](https://github.com/pyomeca/ezc3d)
+* [posekit](https://github.com/anibali/posekit)
+
+### Optional
+
+For viewing poses:
+
+* [PyOpenGL](http://pyopengl.sourceforge.net/)
+* [glfw](https://github.com/FlorianRhiem/pyGLFW)
+
+
 ## Acknowledgments
 
 ASPset-510 is brought to you by [La Trobe University](https://www.latrobe.edu.au/) and the

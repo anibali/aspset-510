@@ -6,3 +6,6 @@ __pycache__/
 # IDE configuration
 .idea/
 .vscode/
+
+# Python packaging
+*.egg-info/
