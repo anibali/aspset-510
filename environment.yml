@@ -2,6 +2,10 @@ name: aspset-510
 channels:
   - defaults
 dependencies:
+  - ezc3d=1.3.2
   - numpy=1.18.1
   - pip=20.0.2
+  - pytest=5.4.2
   - python=3.8.2
+  - pip:
+    - git+https://github.com/anibali/posekit.git@1083d3fe76fae9b2a50f8e8a3b59e3e28d9ec5cc#egg=posekit
