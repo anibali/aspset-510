@@ -9,3 +9,6 @@ __pycache__/
 
 # Python packaging
 *.egg-info/
+
+# Project-specific
+/data

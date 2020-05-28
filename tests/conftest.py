@@ -8,12 +8,17 @@ from aspset510 import Aspset510, Camera
 
 
 @pytest.fixture
-def aspset():
-    default_path = '/media/aiden/FastData/Datasets/ASPset-510'
+def aspset_data_path(request):
+    default_path = Path(request.module.__file__).parent.parent.joinpath('data')
     path = Path(os.environ.get('ASPSET510_DATA_PATH', default_path)).absolute()
     if not path.is_dir():
         pytest.skip('cannot find Aspset data path (try setting the "ASPSET510_DATA_PATH" env var)')
-    return Aspset510(path)
+    return path
+
+
+@pytest.fixture
+def aspset(aspset_data_path):
+    return Aspset510(aspset_data_path)
 
 
 @pytest.fixture
