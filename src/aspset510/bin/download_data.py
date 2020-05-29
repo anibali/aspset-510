@@ -5,7 +5,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from aspset510.download import download_archives, check_archives, extract_archives
+from aspset510.download import download_and_extract_archives
 from aspset510.util import add_boolean_argument
 
 
@@ -17,10 +17,14 @@ def argument_parser():
                         help='path to the downloaded dataset archives (default: {DATA_DIR}/archives)')
     parser.add_argument('--mirror', type=str, required=True,
                         help='base URL of the archive mirror')
+    add_boolean_argument(parser, 'skip_existing', default=True,
+                         description='skip downloading and extracting archives which have been extracted previously')
     add_boolean_argument(parser, 'skip_download_existing', default=True,
-                         description='skip downloading existing files')
+                         description='skip downloading existing archives')
     add_boolean_argument(parser, 'skip_checksum', default=False,
-                         description='skip checking file integrity')
+                         description='skip checking archive integrity')
+    add_boolean_argument(parser, 'skip_extraction', default=False,
+                         description='skip extracting files')
     return parser
 
 
@@ -33,11 +37,17 @@ def main(args):
     else:
         archive_dir = data_dir.joinpath('archives')
 
-    download_archives(archive_dir, opts.mirror, parts=['cameras'],
-                      skip_existing=opts.skip_download_existing, progress=True)
-    if not opts.skip_checksum:
-        check_archives(archive_dir, progress=True)
-    extract_archives(data_dir, archive_dir, progress=True)
+    download_and_extract_archives(
+        data_dir=data_dir,
+        archive_dir=archive_dir,
+        base_url=opts.mirror,
+        fields=['cameras'],
+        skip_existing=opts.skip_existing,
+        skip_download_existing=opts.skip_download_existing,
+        skip_checksum=opts.skip_checksum,
+        skip_extraction=opts.skip_extraction,
+        progress=True,
+    )
 
 
 if __name__ == '__main__':

@@ -16,40 +16,44 @@ class Aspset510:
         self._read_splits()
 
     def _read_splits(self):
-        """Read the CSV file describing which subset (train, val, or test) each clip belongs to.
+        """Read the CSV file describing which split (train, val, or test) each clip belongs to.
         """
         self.splits = {}
         self._inv_splits = {}
         with self.data_dir.joinpath('splits.csv').open('r', newline='') as f:
             reader = csv.reader(f)
             for row in reader:
-                subject_id, clip_id, subset = row
-                self.splits.setdefault(subset, []).append([subject_id, clip_id])
-                self._inv_splits[(subject_id, clip_id)] = subset
+                subject_id, clip_id, split = row
+                self.splits.setdefault(split, []).append([subject_id, clip_id])
+                self._inv_splits[(subject_id, clip_id)] = split
 
-    def find_subset(self, subject_id: str, clip_id: str) -> str:
+    @property
+    def split_names(self):
+        return list(self.splits.keys())
+
+    def find_split(self, subject_id: str, clip_id: str) -> str:
         return self._inv_splits[(subject_id, clip_id)]
 
     def clip(self, subject_id: str, clip_id: str) -> 'Clip':
         return Clip(self, subject_id, clip_id)
 
-    def _subset_clips(self, subset):
+    def _split_clips(self, split):
         return [
             self.clip(subject_id, clip_id)
-            for subject_id, clip_id in self.splits[subset]
+            for subject_id, clip_id in self.splits[split]
         ]
 
     def train_clips(self):
-        return self._subset_clips('train')
+        return self._split_clips('train')
 
     def val_clips(self):
-        return self._subset_clips('val')
+        return self._split_clips('val')
 
     def trainval_clips(self):
         return self.train_clips() + self.val_clips()
 
     def test_clips(self):
-        return self._subset_clips('test')
+        return self._split_clips('test')
 
     def all_clips(self):
         return self.trainval_clips() + self.test_clips()
@@ -61,12 +65,15 @@ class Clip:
         self.subject_id = subject_id
         self.clip_id = clip_id
 
+    def __repr__(self):
+        return f'Clip(subject_id={self.subject_id}, clip_id={self.clip_id})'
+
     @property
-    def subset(self):
-        return self.aspset.find_subset(self.subject_id, self.clip_id)
+    def split(self):
+        return self.aspset.find_split(self.subject_id, self.clip_id)
 
     def _rel_path(self, *args):
-        return self.aspset.data_dir.joinpath('test' if self.subset == 'test' else 'trainval', *args)
+        return self.aspset.data_dir.joinpath('test' if self.split == 'test' else 'trainval', *args)
 
     def load_mocap(self) -> Mocap:
         c3d_file = self._rel_path('joints_3d', self.subject_id, f'{self.subject_id}-{self.clip_id}.c3d')
