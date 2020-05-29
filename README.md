@@ -25,7 +25,7 @@ $ conda env create -f environment.yml
 ### Optional
 
 ```bash
-$ conda env update environment-extra.yml
+$ conda env update -f environment-extra.yml
 ```
 
 For GUI parts of the code:
