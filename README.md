@@ -35,6 +35,34 @@ For GUI parts of the code:
 * matplotlib
 
 
+## Scripts
+
+### Downloading the dataset
+
+`download_data.py` downloads and extracts ASPset-510 data.
+
+Example usage:
+
+```bash
+$ python src/aspset510/bin/download_data.py --data-dir=./data
+```
+
+Note that by default the original archive files will be downloaded and kept in the `archives`
+subdirectory of whichever path you set using `--data-dir`. To set a different path for the
+archives, use the `--archive-dir` option. To download the archives without extracting them,
+use the `--skip-extraction` option.
+
+### Browsing clips from the dataset
+
+`browse_clips.py` provides a graphical user interface for browsing clips from ASPset-510.
+
+Example usage:
+
+```bash
+$ python src/aspset510/bin/browse_clips.py --data-dir=./data
+```
+
+
 ## Acknowledgments
 
 ASPset-510 is brought to you by [La Trobe University](https://www.latrobe.edu.au/) and the

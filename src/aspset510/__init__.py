@@ -62,14 +62,32 @@ class Aspset510:
 class Clip:
     def __init__(self, aspset: Aspset510, subject_id: str, clip_id: str):
         self.aspset = aspset
-        self.subject_id = subject_id
-        self.clip_id = clip_id
+        self._subject_id = subject_id
+        self._clip_id = clip_id
 
     def __repr__(self):
         return f'Clip(subject_id={self.subject_id}, clip_id={self.clip_id})'
 
+    def __eq__(self, other):
+        if isinstance(other, Clip):
+            return self.subject_id == other.subject_id and self.clip_id == other.clip_id
+        return False
+
+    def __hash__(self):
+        return hash((self.subject_id, self.clip_id))
+
+    @property
+    def subject_id(self):
+        return self._subject_id
+
+    @property
+    def clip_id(self):
+        return self._clip_id
+
     @property
     def split(self):
+        """Get the split (i.e. "train", "val", or "test") that this clip belongs to.
+        """
         return self.aspset.find_split(self.subject_id, self.clip_id)
 
     def _rel_path(self, *args):
@@ -98,3 +116,8 @@ class Clip:
     def load_camera(self, camera_id):
         intrinsic_matrix, extrinsic_matrix = self.load_camera_matrices(camera_id)
         return Camera(intrinsic_matrix, extrinsic_matrix)
+
+    @property
+    def frame_count(self):
+        mocap = self.load_mocap()
+        return len(mocap.joint_positions)

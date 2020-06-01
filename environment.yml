@@ -10,4 +10,5 @@ dependencies:
   - python=3.8.2
   - tqdm=4.46.0
   - pip:
+    - -e .
     - git+https://github.com/anibali/posekit.git@1083d3fe76fae9b2a50f8e8a3b59e3e28d9ec5cc#egg=posekit
