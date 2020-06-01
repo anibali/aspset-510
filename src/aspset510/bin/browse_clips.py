@@ -73,31 +73,47 @@ class DatasetBrowser(tk.Tk):
     def _create_toolbar(self):
         toolbar = tk.Frame(self, bd=1, relief=tk.RAISED)
 
+        lbl_split = tk.Label(toolbar, text='Split')
+        lbl_split.grid(row=0, column=0)
         cmb_split = ttk.Combobox(toolbar, textvariable=self.var_split, state='readonly')
         cmb_split['values'] = self.aspset.split_names
-        cmb_split.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        cmb_split.grid(row=1, column=0)
         self.cmb_split = cmb_split
 
+        lbl_subject = tk.Label(toolbar, text='Subject ID')
+        lbl_subject.grid(row=0, column=1)
         cmb_subject = ttk.Combobox(toolbar, textvariable=self.var_subject, state='readonly')
-        cmb_subject.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        cmb_subject.grid(row=1, column=1)
         self.cmb_subject = cmb_subject
 
+        lbl_clip = tk.Label(toolbar, text='Clip ID')
+        lbl_clip.grid(row=0, column=2)
         cmb_clip = ttk.Combobox(toolbar, textvariable=self.var_clip, state='readonly')
-        cmb_clip.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        cmb_clip.grid(row=1, column=2)
         self.cmb_clip = cmb_clip
 
+        lbl_camera = tk.Label(toolbar, text='Camera ID')
+        lbl_camera.grid(row=0, column=3)
         cmb_camera = ttk.Combobox(toolbar, textvariable=self.var_camera, state='readonly')
         cmb_camera['values'] = self.aspset.CAMERA_IDS
-        cmb_camera.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        cmb_camera.grid(row=1, column=3)
         self.cmb_camera = cmb_camera
 
+        lbl_frame = tk.Label(toolbar, text='Frame index')
+        lbl_frame.grid(row=0, column=4)
         spn_frame = tk.Spinbox(toolbar, textvariable=self.var_frame, wrap=True)
-        spn_frame.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        spn_frame.grid(row=1, column=4)
         self.spn_frame = spn_frame
 
         chk_zoom = tk.Checkbutton(toolbar, text='Crop image', variable=self.var_zoom)
-        chk_zoom.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
+        chk_zoom.grid(row=0, column=5, rowspan=2)
         self.chk_zoom = chk_zoom
+
+        # Configure the grid such that the cells will resize dynamically.
+        for col in range(6):
+            tk.Grid.columnconfigure(toolbar, col, weight=1)
+        for row in range(2):
+            tk.Grid.rowconfigure(toolbar, row, weight=1)
 
         return toolbar
 
