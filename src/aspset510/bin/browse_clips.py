@@ -40,8 +40,6 @@ class DatasetBrowser(tk.Tk):
         self.protocol('WM_DELETE_WINDOW', lambda: self.quit())
 
         self.aspset = aspset
-        self.prev_clip = None
-        self.prev_frame = None
 
         self.var_split = tk.StringVar()
         self.var_subject = tk.StringVar()
@@ -97,7 +95,7 @@ class DatasetBrowser(tk.Tk):
         spn_frame.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
         self.spn_frame = spn_frame
 
-        chk_zoom = tk.Checkbutton(toolbar, text='Zoom on pose', variable=self.var_zoom)
+        chk_zoom = tk.Checkbutton(toolbar, text='Crop image', variable=self.var_zoom)
         chk_zoom.pack(side=tk.LEFT, fill=tk.Y, padx=2, pady=2)
         self.chk_zoom = chk_zoom
 
@@ -181,14 +179,14 @@ class DatasetBrowser(tk.Tk):
             self.ax_image.set_xlim(x1, x2)
             self.ax_image.set_ylim(y2, y1)
 
-        if clip != self.prev_clip or frame != self.prev_frame:
-            self.ax_joints_3d.cla()
-            plot_joints_3d(self.ax_joints_3d, joints_3d[frame], skeleton)
+        elev = self.ax_joints_3d.elev
+        azim = self.ax_joints_3d.azim
+        self.ax_joints_3d.cla()
+        plot_joints_3d(self.ax_joints_3d, joints_3d[frame], skeleton)
+        # Restore the previous viewing angle.
+        self.ax_joints_3d.view_init(elev, azim)
 
         self.canvas.draw()
-
-        self.prev_clip = clip
-        self.prev_frame = frame
 
 
 def main(args):
