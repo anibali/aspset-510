@@ -62,6 +62,8 @@ Example usage:
 $ python src/aspset510/bin/browse_clips.py --data-dir=./data
 ```
 
+![Screenshot of the clip browser GUI](docs/images/browse_clips_gui.jpg)
+
 
 ## Acknowledgments
 
