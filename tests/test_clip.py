@@ -6,7 +6,7 @@ from posekit.io import Mocap
 def test_load_mocap(clip):
     mocap = clip.load_mocap()
     assert isinstance(mocap, Mocap)
-    assert mocap.joint_positions.shape == (132, 17, 4)
+    assert mocap.joint_positions.shape == (132, 17, 3)
     assert mocap.skeleton_name == 'aspset_17j'
     assert mocap.sample_rate == 50
 

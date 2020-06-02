@@ -11,4 +11,4 @@ dependencies:
   - tqdm=4.46.0
   - pip:
     - -e .
-    - git+https://github.com/anibali/posekit.git@1083d3fe76fae9b2a50f8e8a3b59e3e28d9ec5cc#egg=posekit
+    - git+https://github.com/anibali/posekit.git@8a27acb3ea20e47a0ad7f19d2c6bb256f6036874#egg=posekit

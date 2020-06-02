@@ -1,4 +1,5 @@
 import numpy as np
+from glupy.math import ensure_cartesian
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 from posekit.skeleton import Skeleton
@@ -43,7 +44,7 @@ def plot_joints_2d(ax: Axes, joints_2d, skeleton: Skeleton, alpha=1.0, point_siz
 def plot_joints_3d(ax: Axes3D, joints_3d, skeleton: Skeleton, invert=True, alpha=1.0, mask=None):
     """Plot a visual representation of the skeleton Matplotlib 3D axes."""
     # NOTE: y and z axes are swapped, but we will relabel them appropriately.
-    joints_3d = np.asarray(joints_3d)
+    joints_3d = ensure_cartesian(np.asarray(joints_3d), d=3)
     xs = joints_3d[..., 0:1]
     ys = joints_3d[..., 2:3]
     zs = joints_3d[..., 1:2]

@@ -10,7 +10,7 @@ Home: Reset the camera.
 import argparse
 import sys
 
-from glupy.math import to_cartesian
+from glupy.math import ensure_cartesian
 from posekit.gui.pose_viewer import PoseViewer
 from posekit.skeleton import skeleton_registry
 
@@ -36,7 +36,7 @@ def main(args):
     aspset = Aspset510(opts.data_dir)
     clip = aspset.clip(opts.subject, opts.clip)
     mocap = clip.load_mocap()
-    pose = to_cartesian(mocap.joint_positions[opts.frame])
+    pose = ensure_cartesian(mocap.joint_positions[opts.frame], d=3)
     gui = PoseViewer(pose, skeleton_registry[mocap.skeleton_name])
     gui.run()
 
