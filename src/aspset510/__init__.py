@@ -95,6 +95,8 @@ class Clip:
 
     def load_mocap(self) -> Mocap:
         c3d_file = self._rel_path('joints_3d', self.subject_id, f'{self.subject_id}-{self.clip_id}.c3d')
+        if not c3d_file.is_file():
+            raise FileNotFoundError(str(c3d_file))
         return load_c3d_mocap(c3d_file)
 
     def get_video_path(self, camera_id) -> Path:
@@ -117,7 +119,19 @@ class Clip:
         intrinsic_matrix, extrinsic_matrix = self.load_camera_matrices(camera_id)
         return Camera(intrinsic_matrix, extrinsic_matrix)
 
+    def load_bounding_boxes(self, camera_id):
+        basename = f'{self.subject_id}-{self.clip_id}-{camera_id}.csv'
+        boxes_path = self._rel_path('boxes', self.subject_id, basename)
+        boxes = []
+        with boxes_path.open('r', newline='') as f:
+            reader = csv.reader(f)
+            # Discard header row.
+            next(reader)
+            # Read bounding boxes.
+            for row in reader:
+                boxes.append([float(e) for e in row])
+        return np.asarray(boxes, dtype=np.float32)
+
     @property
     def frame_count(self):
-        mocap = self.load_mocap()
-        return len(mocap.joint_positions)
+        return len(self.load_bounding_boxes(self.aspset.CAMERA_IDS[0]))

@@ -50,7 +50,8 @@ def roi_containing_points_2d(points, zoom=1):
     return roi
 
 
-def square_containing_rectangle(x1, y1, x2, y2):
+def square_containing_rectangle(rect):
+    x1, y1, x2, y2 = rect
     cx = (x1 + x2) / 2
     cy = (y1 + y2) / 2
     s = max(x2 - x1, y2 - y1) / 2

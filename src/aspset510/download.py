@@ -13,7 +13,7 @@ from tqdm import tqdm
 import aspset510.res
 
 ALL_PARTITIONS = ('trainval', 'test')
-ALL_FIELDS = ('cameras', 'joints_3d', 'videos')
+ALL_FIELDS = ('cameras', 'boxes', 'joints_3d', 'videos')
 CURRENT_VERSION = 'v1'
 _BUFSIZE = shutil.COPY_BUFSIZE if hasattr(shutil, 'COPY_BUFSIZE') else 65536
 

@@ -41,7 +41,6 @@ def main(args):
         data_dir=data_dir,
         archive_dir=archive_dir,
         base_url=opts.mirror,
-        fields=['cameras'],
         skip_existing=opts.skip_existing,
         skip_download_existing=opts.skip_download_existing,
         skip_checksum=opts.skip_checksum,

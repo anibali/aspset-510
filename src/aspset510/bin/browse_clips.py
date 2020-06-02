@@ -9,7 +9,7 @@ from tkinter import ttk
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from aspset510.geometry import roi_containing_points_2d, square_containing_rectangle
+from aspset510.geometry import square_containing_rectangle, zoom_roi
 from glupy.math import to_cartesian
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -177,28 +177,34 @@ class DatasetBrowser(tk.Tk):
         image = np.flip(np.asarray(image), -1)
 
         camera = clip.load_camera(camera_id)
-        mocap = clip.load_mocap()
-        skeleton = skeleton_registry[mocap.skeleton_name]
-        joints_3d = mocap.joint_positions
-        joints_2d = to_cartesian(camera.world_to_image_space(joints_3d)) * self.IMAGE_SCALE
+        try:
+            mocap = clip.load_mocap()
+            skeleton = skeleton_registry[mocap.skeleton_name]
+            joints_3d = mocap.joint_positions
+            joints_2d = to_cartesian(camera.world_to_image_space(joints_3d)) * self.IMAGE_SCALE
+        except FileNotFoundError:
+            joints_3d = None
+            joints_2d = None
+
+        boxes = clip.load_bounding_boxes(camera_id) * self.IMAGE_SCALE
 
         self.ax_image.cla()
         self.ax_image.imshow(image)
         self.ax_image.set_xticks([])
         self.ax_image.set_yticks([])
-        plot_joints_2d(self.ax_image, joints_2d[frame], skeleton)
+        if joints_2d is not None:
+            plot_joints_2d(self.ax_image, joints_2d[frame], skeleton)
 
         if self.var_zoom.get():
-            x1, y1, x2, y2 = square_containing_rectangle(
-                *roi_containing_points_2d(joints_2d[frame], zoom=2/3)
-            )
+            x1, y1, x2, y2 = square_containing_rectangle(zoom_roi(boxes[frame], zoom=2/3))
             self.ax_image.set_xlim(x1, x2)
             self.ax_image.set_ylim(y2, y1)
 
         elev = self.ax_joints_3d.elev
         azim = self.ax_joints_3d.azim
         self.ax_joints_3d.cla()
-        plot_joints_3d(self.ax_joints_3d, joints_3d[frame], skeleton)
+        if joints_3d is not None:
+            plot_joints_3d(self.ax_joints_3d, joints_3d[frame], skeleton)
         # Restore the previous viewing angle.
         self.ax_joints_3d.view_init(elev, azim)
 
