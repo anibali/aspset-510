@@ -1,4 +1,4 @@
-from aspset510.download import read_checksums, compute_md5_checksum
+from aspset510.download import read_checksums, calculate_md5_checksum
 
 
 def test_read_checksums():
@@ -10,10 +10,10 @@ def test_read_checksums():
         assert len(checksum) == 32
 
 
-def test_compute_md5_checksum(tmp_path):
+def test_calculate_md5_checksum(tmp_path):
     expected = 'd8e8fca2dc0f896fd7cb4cb0031ba249'
     file_path = tmp_path.joinpath('test.txt')
     with file_path.open('w') as f:
         f.write('test\n')
-    actual = compute_md5_checksum(str(file_path))
+    actual = calculate_md5_checksum(str(file_path))
     assert actual == expected

@@ -1,4 +1,8 @@
+import os
 from argparse import ArgumentParser
+from typing import Union, AnyStr
+
+FSPath = Union[AnyStr, os.PathLike]
 
 
 def add_boolean_argument(parser: ArgumentParser, name, description, default):
