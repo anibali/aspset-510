@@ -58,6 +58,19 @@ class Aspset510:
     def all_clips(self):
         return self.trainval_clips() + self.test_clips()
 
+    def clips(self, split):
+        if split == 'train':
+            return self.train_clips()
+        if split == 'val':
+            return self.val_clips()
+        if split == 'trainval':
+            return self.trainval_clips()
+        if split == 'test':
+            return self.test_clips()
+        if split == 'all':
+            return self.all_clips()
+        raise ValueError(split)
+
 
 class Clip:
     def __init__(self, aspset: Aspset510, subject_id: str, clip_id: str):
