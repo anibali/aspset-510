@@ -17,7 +17,7 @@ This repository contains Python code for working with ASPset-510.
 $ conda env create -f environment.yml
 ```
 
-* python >= 3.7
+* python >= 3.6
 * numpy
 * [ezc3d](https://github.com/pyomeca/ezc3d)
 * [posekit](https://github.com/anibali/posekit)
