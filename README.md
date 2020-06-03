@@ -11,28 +11,32 @@ This repository contains Python code for working with ASPset-510.
 
 ## Requirements
 
-### Mandatory
+### Core
 
 ```bash
 $ conda env create -f environment.yml
 ```
 
-* python >= 3.6
+* python >= 3.7
 * numpy
 * [ezc3d](https://github.com/pyomeca/ezc3d)
 * [posekit](https://github.com/anibali/posekit)
 
-### Optional
+### GUI (Optional)
 
 ```bash
-$ conda env update -f environment-extra.yml
+$ conda env update -f environment-gui.yml
 ```
-
-For GUI parts of the code:
 
 * [PyOpenGL](http://pyopengl.sourceforge.net/)
 * [glfw](https://github.com/FlorianRhiem/pyGLFW)
 * matplotlib
+
+### PyTorch (Optional)
+
+```bash
+$ conda env update -f environment-torch.yml
+```
 
 
 ## Scripts

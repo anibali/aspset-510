@@ -1,0 +1,8 @@
+name: aspset-510
+channels:
+  - defaults
+dependencies:
+  - pip=20.0.2
+  - pytorch=1.5.0
+  - pip:
+    - tvl[OpenCvBackend]==0.1.0b17
