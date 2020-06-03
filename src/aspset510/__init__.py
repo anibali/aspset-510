@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from posekit.io import load_c3d_mocap, Mocap
+from posekit.io import load_mocap, Mocap
 
 from aspset510.camera import Camera
 
@@ -110,7 +110,7 @@ class Clip:
         c3d_file = self._rel_path('joints_3d', self.subject_id, f'{self.subject_id}-{self.clip_id}.c3d')
         if not c3d_file.is_file():
             raise FileNotFoundError(str(c3d_file))
-        return load_c3d_mocap(c3d_file)
+        return load_mocap(c3d_file)
 
     def get_video_path(self, camera_id) -> Path:
         assert camera_id in self.aspset.CAMERA_IDS
