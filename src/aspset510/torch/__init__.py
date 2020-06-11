@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from typing import Collection
+from typing import Collection, Optional, Tuple
 
 import numpy as np
+import torch
+from aspset510 import Aspset510, Clip, Camera, constants
+from aspset510.geometry import zoom_roi, square_containing_rectangle
+from aspset510.util import FSPath
 from glupy.math import ensure_cartesian
 from torch.utils.data import Dataset
 from tvl import VideoLoader
-
-from aspset510 import Aspset510, Clip, Camera
-from aspset510.geometry import zoom_roi, square_containing_rectangle
-from aspset510.util import FSPath
 
 ALL_FIELDS = ('cameras', 'boxes', 'joints_3d', 'joints_2d', 'videos')
 
@@ -25,8 +25,8 @@ class Aspset510Dataset(Dataset):
         """Create a dataset instance for loading examples from a collection of ASPset-510 clips.
 
         Args:
-            clips (Collection[Clip]): Clips to load examples from.
-            fields (Collection[str]): List of dataset fields to derive example annotations from.
+            clips: Clips to load examples from.
+            fields: List of dataset fields to derive example annotations from.
                 For example, 'cameras' will include camera parameters, 'videos' will include the
                 video frame image, etc. If image data is not needed, it is highly recommended to
                 omit 'videos' for greatly improved data loading performance.
@@ -38,54 +38,178 @@ class Aspset510Dataset(Dataset):
                     refs.append(_ExampleRef(clip, i, camera_id))
         self._refs = refs
         self.fields = fields
+        self.fps = constants.FPS
 
     def __len__(self):
         return len(self._refs)
 
-    def _fill_entries_from_cameras(self, example, ref):
+    def _get_ref(self, index, dt) -> _ExampleRef:
+        unmodified_ref = self._refs[index]
+        frame_index = int(round(unmodified_ref.frame_index + self.fps * dt))
+        frame_index = min(max(frame_index, 0), unmodified_ref.clip.frame_count - 1)
+        ref = _ExampleRef(unmodified_ref.clip, frame_index, unmodified_ref.camera_id)
+        return ref
+
+    def get_unique_video_id(self, index: int, dt: float) -> str:
+        """Get a unique identifier for the video corresponding to a particular example.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            The unique video ID string.
+        """
+        ref = self._get_ref(index, dt)
+        return f'{ref.clip.subject_id}-{ref.clip.clip_id}-{ref.camera_id}'
+
+    def get_frame_index(self, index, dt) -> int:
+        """Get the corresponding video frame index for a particular example.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            The video frame index.
+        """
+        ref = self._get_ref(index, dt)
+        return ref.frame_index
+
+    def load_camera_matrices(self, index: int, dt: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
+        """Get the camera intrinsic and extrinsic matrices for a particular example.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            A tuple containing the camera intrinsic (3x4) and extrinsic (4x4) matrices.
+        """
+        ref = self._get_ref(index, dt)
+        return ref.clip.load_camera_matrices(ref.camera_id)
+
+    def _fill_entries_from_cameras(self, example, index, dt):
         if 'intrinsic_matrix' in example and 'extrinsic_matrix' in example:
             return
-        intrinsic_matrix, extrinsic_matrix = ref.clip.load_camera_matrices(ref.camera_id)
+        intrinsic_matrix, extrinsic_matrix = self.load_camera_matrices(index, dt)
         example['intrinsic_matrix'] = intrinsic_matrix
         example['extrinsic_matrix'] = extrinsic_matrix
 
-    def _fill_entries_from_joints_3d(self, example, ref):
+    def load_joints_3d(
+        self,
+        index: int,
+        dt: float,
+        *,
+        camera: Optional[Camera] = None,
+    ) -> Tuple[np.ndarray, str]:
+        """Get the 3D joint locations for a particular example.
+
+        The joints will be in camera space (not world space) coordinates.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+            camera: The camera for this example (will be automatically loaded if not specified).
+
+        Returns:
+            A tuple containing the 3D joint locations in camera space and the skeleton description
+            name.
+        """
+        ref = self._get_ref(index, dt)
+        if camera is None:
+            camera = Camera(*self.load_camera_matrices(index, dt))
+        mocap = ref.clip.load_mocap()
+        joints_3d = ensure_cartesian(camera.world_to_camera_space(mocap.joint_positions[ref.frame_index]), d=3)
+        return joints_3d, mocap.skeleton_name
+
+    def _fill_entries_from_joints_3d(self, example, index, dt):
         if 'joints_3d' in example and 'skeleton_name' in example:
             return
-        self._fill_entries_from_cameras(example, ref)
-        mocap = ref.clip.load_mocap()
+        self._fill_entries_from_cameras(example, index, dt)
         camera = Camera(example['intrinsic_matrix'], example['extrinsic_matrix'])
-        example['joints_3d'] = ensure_cartesian(camera.world_to_camera_space(mocap.joint_positions[ref.frame_index]), d=3)
-        example['skeleton_name'] = mocap.skeleton_name
+        joints_3d, skeleton_name = self.load_joints_3d(index, dt, camera=camera)
+        example['joints_3d'] = joints_3d
+        example['skeleton_name'] = skeleton_name
 
-    def _fill_entries_from_joints_2d(self, example, ref):
+    def load_joints_2d(
+        self,
+        index: int,
+        dt: float,
+        *,
+        camera: Camera = None,
+        joints_3d: np.ndarray = None,
+        skeleton_name: str = None,
+    ) -> Tuple[np.ndarray, str]:
+        """Get the 2D joint locations for a particular example.
+
+        The joints will be in image space coordinates.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+            camera: The camera for this example (will be automatically loaded if not specified).
+            joints_3d: The camera space 3D joint locations for this example (will be automatically
+                loaded if not specified).
+            skeleton_name: The skeleton name for this example (will be automatically
+                loaded if not specified).
+
+        Returns:
+            A tuple containing the 2D joint locations in image space and the skeleton description
+            name.
+        """
+        if camera is None:
+            camera = Camera(*self.load_camera_matrices(index, dt))
+        if joints_3d is None or skeleton_name is None:
+            joints_3d, skeleton_name = self.load_joints_3d(index, dt, camera=camera)
+        return ensure_cartesian(camera.camera_to_image_space(joints_3d), d=2), skeleton_name
+
+    def _fill_entries_from_joints_2d(self, example, index, dt):
         if 'joints_2d' in example:
             return
-        self._fill_entries_from_cameras(example, ref)
-        self._fill_entries_from_joints_3d(example, ref)
-        camera = Camera(example['intrinsic_matrix'], example['extrinsic_matrix'])
-        example['joints_2d'] = ensure_cartesian(camera.camera_to_image_space(example['joints_3d']), d=2)
+        self._fill_entries_from_cameras(example, index, dt)
+        self._fill_entries_from_joints_3d(example, index, dt)
+        joints_2d, _ = self.load_joints_2d(
+            index,
+            dt,
+            camera=Camera(example['intrinsic_matrix'], example['extrinsic_matrix']),
+            joints_3d=example['joints_3d'],
+            skeleton_name=example['skeleton_name'],
+        )
+        example['joints_2d'] = joints_2d
 
-    def _fill_entries_from_boxes(self, example, ref):
+    def _fill_entries_from_boxes(self, example, index, dt):
         if 'box' in example and 'crop_box' in example:
             return
+        ref = self._get_ref(index, dt)
         box = ref.clip.load_bounding_boxes(ref.camera_id)[ref.frame_index]
         crop_box = np.asarray(square_containing_rectangle(zoom_roi(box, zoom=2/3)))
         example['box'] = box
         example['crop_box'] = crop_box
 
-    def load_video_frame_image(self, video_path, frame_index):
-        vl = VideoLoader(video_path, 'cpu')
-        return vl.select_frame(frame_index)
+    def load_image(self, index: int, dt: float) -> torch.Tensor:
+        """Get the video frame image for a particular example.
 
-    def _fill_entries_from_videos(self, example, ref):
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            The video frame image.
+        """
+        ref = self._get_ref(index, dt)
+        video_path = ref.clip.get_video_path(ref.camera_id)
+        vl = VideoLoader(video_path, 'cpu')
+        return vl.select_frame(ref.frame_index)
+
+    def _fill_entries_from_videos(self, example, index, dt):
         if 'image' in example:
             return
-        video_path = ref.clip.get_video_path(ref.camera_id)
-        example['image'] = self.load_video_frame_image(video_path, ref.frame_index)
+        example['image'] = self.load_image(index, dt)
 
     def __getitem__(self, index):
-        ref = self._refs[index]
+        dt = 0.0
+        ref = self._get_ref(index, dt)
         example = {
             'index': index,
             'subject_id': ref.clip.subject_id,
@@ -95,15 +219,15 @@ class Aspset510Dataset(Dataset):
         }
         for field in self.fields:
             if field == 'cameras':
-                self._fill_entries_from_cameras(example, ref)
+                self._fill_entries_from_cameras(example, index, dt)
             if field == 'joints_3d':
-                self._fill_entries_from_joints_3d(example, ref)
+                self._fill_entries_from_joints_3d(example, index, dt)
             if field == 'joints_2d':
-                self._fill_entries_from_joints_2d(example, ref)
+                self._fill_entries_from_joints_2d(example, index, dt)
             if field == 'boxes':
-                self._fill_entries_from_boxes(example, ref)
+                self._fill_entries_from_boxes(example, index, dt)
             if field == 'videos':
-                self._fill_entries_from_videos(example, ref)
+                self._fill_entries_from_videos(example, index, dt)
         return example
 
 
@@ -111,12 +235,12 @@ def create_aspset510_dataset(data_dir: FSPath, split: str, **kwargs) -> Aspset51
     """Create a PyTorch Dataset instance for a particular ASPset-510 split.
 
     Args:
-        data_dir (FSPath): ASPset-510 data directory path.
-        split (str): Split of the dataset (e.g. 'train' or 'test').
+        data_dir: ASPset-510 data directory path.
+        split: Split of the dataset (e.g. 'train' or 'test').
         **kwargs: Keyword arguments to pass to the `Aspset510Dataset` constructor.
 
     Returns:
-        Aspset510Dataset: The dataset instance.
+        The dataset instance.
     """
     aspset = Aspset510(data_dir)
     clips = aspset.clips(split)
