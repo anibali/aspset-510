@@ -33,8 +33,8 @@ class Aspset510Dataset(Dataset):
         """
         refs = []
         for clip in clips:
-            for i in range(clip.frame_count):
-                for camera_id in Aspset510.CAMERA_IDS:
+            for camera_id in Aspset510.CAMERA_IDS:
+                for i in range(clip.frame_count):
                     refs.append(_ExampleRef(clip, i, camera_id))
         self._refs = refs
         self.fields = fields
