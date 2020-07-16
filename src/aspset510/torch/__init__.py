@@ -63,6 +63,18 @@ class Aspset510Dataset(Dataset):
         ref = self._get_ref(index, dt)
         return f'{ref.clip.subject_id}-{ref.clip.clip_id}-{ref.camera_id}'
 
+    def get_camera_id(self, index, dt) -> str:
+        """Get the corresponding camera ID for a particular example.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            The camera ID.
+        """
+        return self._get_ref(index, dt).camera_id
+
     def get_frame_index(self, index, dt) -> int:
         """Get the corresponding video frame index for a particular example.
 
@@ -75,6 +87,18 @@ class Aspset510Dataset(Dataset):
         """
         ref = self._get_ref(index, dt)
         return ref.frame_index
+
+    def get_clip(self, index, dt) -> Clip:
+        """Get the corresponding clip for a particular example.
+
+        Args:
+            index: The index of the example.
+            dt: A time offset relative to the original example location.
+
+        Returns:
+            The clip.
+        """
+        return self._get_ref(index, dt).clip
 
     def load_camera_matrices(self, index: int, dt: float = 0.0) -> Tuple[np.ndarray, np.ndarray]:
         """Get the camera intrinsic and extrinsic matrices for a particular example.
