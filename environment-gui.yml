@@ -1,6 +1,7 @@
 name: aspset-510
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - glfw=3.3.2
   - matplotlib=3.1.3

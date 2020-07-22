@@ -1,6 +1,7 @@
 name: aspset-510
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - ezc3d=1.3.2
   - importlib_resources=1.4.0
