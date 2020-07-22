@@ -9,7 +9,7 @@ from aspset510.camera import Camera
 
 
 class Aspset510:
-    CAMERA_IDS = ['left', 'mid', 'right']
+    ALL_CAMERA_IDS = ['left', 'mid', 'right']
 
     def __init__(self, data_dir):
         self.data_dir = Path(data_dir)
@@ -20,10 +20,16 @@ class Aspset510:
         """
         self.splits = {}
         self._inv_splits = {}
+        self.cameras_for_clip = {}
         with self.data_dir.joinpath('splits.csv').open('r', newline='') as f:
             reader = csv.reader(f)
             for row in reader:
-                subject_id, clip_id, split = row
+                subject_id, clip_id, split, camera_id = row
+                if camera_id == 'all':
+                    cameras = self.ALL_CAMERA_IDS
+                else:
+                    cameras = [camera_id]
+                self.cameras_for_clip[(subject_id, clip_id)] = cameras
                 self.splits.setdefault(split, []).append([subject_id, clip_id])
                 self._inv_splits[(subject_id, clip_id)] = split
 
@@ -98,6 +104,10 @@ class Clip:
         return self._clip_id
 
     @property
+    def camera_ids(self):
+        return self.aspset.cameras_for_clip[(self.subject_id, self.clip_id)]
+
+    @property
     def split(self):
         """Get the split (i.e. "train", "val", or "test") that this clip belongs to.
         """
@@ -113,13 +123,13 @@ class Clip:
         return load_mocap(c3d_file)
 
     def get_video_path(self, camera_id) -> Path:
-        assert camera_id in self.aspset.CAMERA_IDS
+        assert camera_id in self.camera_ids
         basename = f'{self.subject_id}-{self.clip_id}-{camera_id}.mkv'
         video_path = self._rel_path('videos', self.subject_id, basename)
         return video_path
 
     def load_camera_matrices(self, camera_id):
-        assert camera_id in self.aspset.CAMERA_IDS
+        assert camera_id in self.camera_ids
         basename = f'{self.subject_id}-{camera_id}.json'
         camera_path = self._rel_path('cameras', self.subject_id, basename)
         with camera_path.open('r') as f:
@@ -147,4 +157,4 @@ class Clip:
 
     @property
     def frame_count(self):
-        return len(self.load_bounding_boxes(self.aspset.CAMERA_IDS[0]))
+        return len(self.load_bounding_boxes(self.camera_ids[0]))

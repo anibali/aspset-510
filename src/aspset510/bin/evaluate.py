@@ -38,6 +38,7 @@ def main(args):
     evaluator = Joints3dEvaluator(skeleton)
 
     for clip in tqdm(clips, leave=True, ascii=True):
+        # FIXME: Support predictions for multiple camera angles (relevant for train and val splits).
         pred_files = list(preds_dir.rglob(f'{clip.subject_id}-{clip.clip_id}.*'))
         if len(pred_files) != 1:
             raise RuntimeError(f'no unique prediction file for {clip}')

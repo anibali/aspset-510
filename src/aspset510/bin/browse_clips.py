@@ -44,7 +44,7 @@ class DatasetBrowser(tk.Tk):
         self.var_split = tk.StringVar()
         self.var_subject = tk.StringVar()
         self.var_clip = tk.StringVar()
-        self.var_camera = tk.StringVar(value=aspset.CAMERA_IDS[0])
+        self.var_camera = tk.StringVar(value=aspset.ALL_CAMERA_IDS[0])
         self.var_frame = tk.StringVar()
         self.var_zoom = tk.IntVar(value=1)
 
@@ -96,7 +96,7 @@ class DatasetBrowser(tk.Tk):
         lbl_camera = tk.Label(toolbar, text='Camera ID')
         lbl_camera.grid(row=0, column=3)
         cmb_camera = ttk.Combobox(toolbar, textvariable=self.var_camera, state='readonly')
-        cmb_camera['values'] = self.aspset.CAMERA_IDS
+        cmb_camera['values'] = self.aspset.ALL_CAMERA_IDS
         cmb_camera.grid(row=1, column=3)
         self.cmb_camera = cmb_camera
 
@@ -151,6 +151,8 @@ class DatasetBrowser(tk.Tk):
         subject_id = self.var_subject.get()
         clip_id = self.var_clip.get()
         clip = self.aspset.clip(subject_id, clip_id)
+        self.cmb_camera['values'] = clip.camera_ids
+        self.cmb_camera.current(0)
         self.spn_frame.config(from_=0, to=clip.frame_count - 1)
         self.var_frame.set('0')
 
