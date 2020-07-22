@@ -52,7 +52,7 @@ class DatasetBrowser(tk.Tk):
         self.var_subject.trace('w', self.on_subject_change)
         self.var_clip.trace('w', self.on_clip_change)
         self.var_camera.trace('w', self._trigger_refresh)
-        self.var_frame.trace('w', self._trigger_refresh)
+        self.var_frame.trace('w', self._trigger_refresh_frame)
         self.var_zoom.trace('w', self._trigger_refresh)
 
         toolbar = self._create_toolbar()
@@ -68,6 +68,7 @@ class DatasetBrowser(tk.Tk):
         fig.subplots_adjust(0.01, 0.01, 0.99, 0.99, 0.05, 0.05)
 
         # Set initial state of comboboxes (will result in an example being shown).
+        self._skip_refresh = False
         self.cmb_split.current(0)
 
     def _create_toolbar(self):
@@ -124,6 +125,7 @@ class DatasetBrowser(tk.Tk):
         return fig, canvas
 
     def on_split_change(self, *args):
+        self._skip_refresh = True
         split = self.var_split.get()
         subjects = set()
         for clip_subject_id, _ in self.aspset.splits[split]:
@@ -133,6 +135,7 @@ class DatasetBrowser(tk.Tk):
         self.cmb_subject.current(0)
 
     def on_subject_change(self, *args):
+        self._skip_refresh = True
         split = self.var_split.get()
         subject_id = self.var_subject.get()
         clips = set()
@@ -144,6 +147,7 @@ class DatasetBrowser(tk.Tk):
         self.cmb_clip.current(0)
 
     def on_clip_change(self, *args):
+        self._skip_refresh = True
         subject_id = self.var_subject.get()
         clip_id = self.var_clip.get()
         clip = self.aspset.clip(subject_id, clip_id)
@@ -153,10 +157,17 @@ class DatasetBrowser(tk.Tk):
     def _trigger_refresh(self, *args):
         self.refresh()
 
+    def _trigger_refresh_frame(self, *args):
+        self._skip_refresh = False
+        self._trigger_refresh()
+
     def run(self):
         self.mainloop()
 
     def refresh(self):
+        if self._skip_refresh:
+            return
+
         subject_id = self.var_subject.get()
         clip_id = self.var_clip.get()
         clip = self.aspset.clip(subject_id, clip_id)
