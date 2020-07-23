@@ -272,6 +272,8 @@ def create_aspset510_dataset(data_dir: FSPath, split: str, **kwargs) -> Aspset51
     Returns:
         The dataset instance.
     """
+    if kwargs.get('temporal_downsample', None) is None:
+        kwargs['temporal_downsample'] = 5 if split == 'test' else 1
     aspset = Aspset510(data_dir)
     clips = aspset.clips(split)
     return Aspset510Dataset(clips, **kwargs)
