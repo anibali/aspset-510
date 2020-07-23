@@ -14,14 +14,14 @@ ALL_FIELDS = ('cameras', 'boxes', 'joints_3d', 'joints_2d', 'videos')
 
 
 @dataclass
-class _ExampleRef:
+class _FrameRef:
     clip: Clip
     frame_index: int
     camera_id: str
 
 
 class Aspset510Dataset(Dataset):
-    def __init__(self, clips: Collection[Clip], fields: Collection[str] = ALL_FIELDS):
+    def __init__(self, clips: Collection[Clip], fields: Collection[str] = ALL_FIELDS, temporal_downsample: int = 1):
         """Create a dataset instance for loading examples from a collection of ASPset-510 clips.
 
         Args:
@@ -30,24 +30,30 @@ class Aspset510Dataset(Dataset):
                 For example, 'cameras' will include camera parameters, 'videos' will include the
                 video frame image, etc. If image data is not needed, it is highly recommended to
                 omit 'videos' for greatly improved data loading performance.
+            temporal_downsample: Factor by which to temporally downsample clips when building the
+                list of examples.
         """
         refs = []
         for clip in clips:
             for camera_id in clip.camera_ids:
-                for i in range(clip.frame_count):
-                    refs.append(_ExampleRef(clip, i, camera_id))
+                refs.extend([
+                    _FrameRef(clip, i, camera_id)
+                    for i in range(clip.frame_count)
+                    if i % temporal_downsample == 0
+                ])
         self._refs = refs
         self.fields = fields
-        self.fps = constants.FPS
+        self.video_fps = constants.FPS
+        self.example_fps = self.video_fps / temporal_downsample
 
     def __len__(self):
         return len(self._refs)
 
-    def _get_ref(self, index, dt) -> _ExampleRef:
+    def _get_ref(self, index, dt) -> _FrameRef:
         unmodified_ref = self._refs[index]
-        frame_index = int(round(unmodified_ref.frame_index + self.fps * dt))
+        frame_index = int(round(unmodified_ref.frame_index + self.video_fps * dt))
         frame_index = min(max(frame_index, 0), unmodified_ref.clip.frame_count - 1)
-        ref = _ExampleRef(unmodified_ref.clip, frame_index, unmodified_ref.camera_id)
+        ref = _FrameRef(unmodified_ref.clip, frame_index, unmodified_ref.camera_id)
         return ref
 
     def get_unique_video_id(self, index: int, dt: float) -> str:
