@@ -3,12 +3,15 @@ from typing import Collection, Optional, Tuple
 
 import numpy as np
 import torch
-from aspset510 import Aspset510, Clip, Camera, constants
-from aspset510.geometry import zoom_roi, square_containing_rectangle
-from aspset510.util import FSPath
 from glupy.math import ensure_cartesian
+from posekit.skeleton import skeleton_registry
 from torch.utils.data import Dataset
 from tvl import VideoLoader
+
+from aspset510 import Aspset510, Clip, Camera, constants
+from aspset510.geometry import zoom_roi, square_containing_rectangle
+from aspset510.scale import to_univ_scale
+from aspset510.util import FSPath
 
 ALL_FIELDS = ('cameras', 'boxes', 'joints_3d', 'joints_2d', 'videos')
 
@@ -160,6 +163,7 @@ class Aspset510Dataset(Dataset):
         camera = Camera(example['intrinsic_matrix'], example['extrinsic_matrix'])
         joints_3d, skeleton_name = self.load_joints_3d(index, dt, camera=camera)
         example['joints_3d'] = joints_3d
+        example['univ_joints_3d'] = to_univ_scale(joints_3d, skeleton_registry[skeleton_name])
         example['skeleton_name'] = skeleton_name
 
     def load_joints_2d(
