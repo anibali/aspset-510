@@ -27,6 +27,14 @@ def argument_parser():
     return parser
 
 
+def get_joint_positions(mocap, sample_rate):
+    factor = mocap.sample_rate / sample_rate
+    int_factor = int(factor)
+    if int_factor != factor:
+        raise ValueError('sample rate is not evenly divisible')
+    return mocap.joint_positions[::int_factor]
+
+
 def main(args):
     opts = argument_parser().parse_args(args)
 
@@ -40,6 +48,11 @@ def main(args):
 
     evaluator = Joints3dEvaluator(skeleton)
 
+    if opts.split == 'test':
+        sample_rate = 10
+    else:
+        sample_rate = 50
+
     for clip in tqdm(clips, leave=True, ascii=True):
         # FIXME: Support predictions for multiple camera angles (relevant for train and val splits).
         pred_files = list(preds_dir.rglob(f'{clip.subject_id}-{clip.clip_id}.*'))
@@ -47,10 +60,12 @@ def main(args):
             raise RuntimeError(f'no unique prediction file for {clip}')
         pred_mocap = load_mocap(pred_files[0])
         pred_skeleton = skeleton_registry[pred_mocap.skeleton_name]
-        pred_joints_3d = skeleton_converter.convert(pred_mocap.joint_positions, pred_skeleton, skeleton)
+        pred_joints_3d = skeleton_converter.convert(get_joint_positions(pred_mocap, sample_rate),
+                                                    pred_skeleton, skeleton)
         gt_mocap = clip.load_mocap()
         gt_skeleton = skeleton_registry[gt_mocap.skeleton_name]
-        gt_joints_3d = skeleton_converter.convert(gt_mocap.joint_positions, gt_skeleton, skeleton)
+        gt_joints_3d = skeleton_converter.convert(get_joint_positions(gt_mocap, sample_rate),
+                                                  gt_skeleton, skeleton)
         if opts.univ:
             gt_joints_3d = to_univ_scale(gt_joints_3d, skeleton)
         evaluator.add(pred_joints_3d, gt_joints_3d)
