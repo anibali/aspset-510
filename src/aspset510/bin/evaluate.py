@@ -5,12 +5,14 @@ import argparse
 import sys
 from pathlib import Path
 
-from aspset510.evaluation import Joints3dEvaluator
 from posekit.io import load_mocap
 from posekit.skeleton import skeleton_registry, skeleton_converter
 from tqdm import tqdm
 
 from aspset510 import Aspset510
+from aspset510.evaluation import Joints3dEvaluator
+from aspset510.scale import to_univ_scale
+from aspset510.util import add_boolean_argument
 
 
 def argument_parser():
@@ -21,6 +23,7 @@ def argument_parser():
                         help='path to the predictions directory')
     parser.add_argument('--split', type=str, required=True,
                         help='split of the dataset to evaluate on (e.g. train, val, or test)')
+    add_boolean_argument(parser, 'univ', description='universal pose scale', default=False)
     return parser
 
 
@@ -48,6 +51,8 @@ def main(args):
         gt_mocap = clip.load_mocap()
         gt_skeleton = skeleton_registry[gt_mocap.skeleton_name]
         gt_joints_3d = skeleton_converter.convert(gt_mocap.joint_positions, gt_skeleton, skeleton)
+        if opts.univ:
+            gt_joints_3d = to_univ_scale(gt_joints_3d, skeleton)
         evaluator.add(pred_joints_3d, gt_joints_3d)
 
     evaluator.print_results()
