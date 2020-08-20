@@ -5,12 +5,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from posekit.io import load_mocap
 from posekit.skeleton import skeleton_registry, skeleton_converter
 from tqdm import tqdm
 
 from aspset510 import Aspset510
-from aspset510.evaluation import Joints3dEvaluator
+from aspset510.evaluation import Joints3dEvaluator, find_and_load_prediction
 from aspset510.scale import to_univ_scale
 from aspset510.util import add_boolean_argument
 
@@ -49,27 +48,36 @@ def main(args):
     evaluator = Joints3dEvaluator(skeleton)
 
     if opts.split == 'test':
+        # Test set evaluation is performed at 10 frames per second.
         sample_rate = 10
     else:
+        # Evaluation on training/validation data is performed at the full 50 frames per second.
         sample_rate = 50
 
     for clip in tqdm(clips, leave=True, ascii=True):
-        # FIXME: Support predictions for multiple camera angles (relevant for train and val splits).
-        pred_files = list(preds_dir.rglob(f'{clip.subject_id}-{clip.clip_id}.*'))
-        if len(pred_files) != 1:
-            raise RuntimeError(f'no unique prediction file for {clip}')
-        pred_mocap = load_mocap(pred_files[0])
-        pred_skeleton = skeleton_registry[pred_mocap.skeleton_name]
-        pred_joints_3d = skeleton_converter.convert(get_joint_positions(pred_mocap, sample_rate),
-                                                    pred_skeleton, skeleton)
+        # Find which camera angles are to be used for evaluating this clip.
+        camera_ids = aspset.cameras_for_clip[(clip.subject_id, clip.clip_id)]
+        # Prediction files don't need to specify the camera ID when there is only one possibility.
+        include_unknown_camera = len(camera_ids) == 1
+
+        # Load and prepare the ground truth 3D joint annotations.
         gt_mocap = clip.load_mocap()
         gt_skeleton = skeleton_registry[gt_mocap.skeleton_name]
-        gt_joints_3d = skeleton_converter.convert(get_joint_positions(gt_mocap, sample_rate),
-                                                  gt_skeleton, skeleton)
+        gt_joints_3d = get_joint_positions(gt_mocap, sample_rate)
+        gt_joints_3d = skeleton_converter.convert(gt_joints_3d, gt_skeleton, skeleton)
         if opts.univ:
             gt_joints_3d = to_univ_scale(gt_joints_3d, skeleton)
-        evaluator.add(pred_joints_3d, gt_joints_3d)
 
+        # Load and add predictions to the evaluation.
+        for camera_id in camera_ids:
+            pred_mocap = find_and_load_prediction(preds_dir, clip.subject_id, clip.clip_id,
+                                                  camera_id, include_unknown_camera)
+            pred_skeleton = skeleton_registry[pred_mocap.skeleton_name]
+            pred_joints_3d = skeleton_converter.convert(get_joint_positions(pred_mocap, sample_rate),
+                                                        pred_skeleton, skeleton)
+            evaluator.add(pred_joints_3d, gt_joints_3d)
+
+    # Print the evaluation results to stdout.
     evaluator.print_results()
 
 

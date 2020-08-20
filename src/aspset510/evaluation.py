@@ -1,6 +1,11 @@
+from pathlib import Path
+
 import numpy as np
+from posekit.io import load_mocap, Mocap
 from posekit.skeleton import Skeleton
 from posekit.skeleton.utils import assert_plausible_skeleton, procrustes, absolute_to_root_relative
+
+from aspset510.util import FSPath
 
 
 def calculate_mpjpe(actual_poses, expected_poses):
@@ -102,3 +107,34 @@ class Joints3dEvaluator:
         results = self.collect_results()
         for name, value in results.items():
             print(f'{name}: {value:0.4f}')
+
+
+def find_and_load_prediction(
+    preds_dir: FSPath,
+    subject_id: str,
+    clip_id: str,
+    camera_id: str,
+    include_unknown_camera: bool = False,
+) -> Mocap:
+    """Find and load specific motion capture data from a directory containing prediction files.
+
+    Args:
+        preds_dir: The root predictions directory.
+        subject_id: The subject ID of the prediction file to find.
+        clip_id: The clip ID of the prediction file to find.
+        camera_id: The camera ID of the prediction file to find.
+        include_unknown_camera: If ``True``, prediction files without a camera ID are assumed to
+            be for ``camera_id``.
+
+    Returns:
+        Motion capture data for the specified clip and camera.
+    """
+    preds_dir = Path(preds_dir)
+    pred_files = list(preds_dir.rglob(f'{subject_id}-{clip_id}-{camera_id}.*'))
+    if include_unknown_camera:
+        pred_files.extend(preds_dir.rglob(f'{subject_id}-{clip_id}.*'))
+    if len(pred_files) == 0:
+        raise RuntimeError(f'no prediction file found for {subject_id}-{clip_id}-{camera_id}')
+    if len(pred_files) > 1:
+        raise RuntimeError(f'multiple prediction files found for {subject_id}-{clip_id}-{camera_id}')
+    return load_mocap(pred_files[0])
