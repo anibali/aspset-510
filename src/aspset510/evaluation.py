@@ -2,9 +2,11 @@ from pathlib import Path
 
 import numpy as np
 from posekit.io import load_mocap, Mocap
-from posekit.skeleton import Skeleton
+from posekit.skeleton import Skeleton, skeleton_registry, skeleton_converter
 from posekit.skeleton.utils import assert_plausible_skeleton, procrustes, absolute_to_root_relative
 
+from aspset510 import Aspset510
+from aspset510.scale import to_univ_scale
 from aspset510.util import FSPath
 
 
@@ -141,3 +143,88 @@ def find_and_load_prediction(
     if len(pred_files) > 1:
         raise RuntimeError(f'multiple prediction files found for {subject_id}-{clip_id}-{camera_id}')
     return load_mocap(pred_files[0])
+
+
+def get_joint_positions(mocap, sample_rate):
+    factor = mocap.sample_rate / sample_rate
+    int_factor = int(factor)
+    if int_factor != factor:
+        raise ValueError('sample rate is not evenly divisible')
+    return mocap.joint_positions[::int_factor]
+
+
+class EvaluationDataLoader:
+    def __init__(
+        self,
+        aspset: Aspset510,
+        preds_dir: FSPath,
+        split: str,
+        skeleton_name: str = 'aspset_17j',
+        univ: bool = False,
+        skip_missing: bool = False,
+    ):
+        """Create an iterable for loading predicted and corresponding ground truth 3D poses.
+
+        Args:
+            aspset:
+            preds_dir: The root predictions directory.
+            split: The dataset split to load data from (e.g. 'train', 'val', 'test').
+            skeleton_name: Skeleton to use for evaluation. Joints from predictions and ground truth
+                will be converted to this skeleton representation.
+            univ: If ``True``, ground truth poses will be converted to universal scale.
+            skip_missing: If ``True``, missing predictions will be skipped instead of raising an
+                exception.
+        """
+        self.aspset = aspset
+        self.preds_dir = Path(preds_dir)
+        self.split = split
+        self.skeleton = skeleton_registry[skeleton_name]
+        self.univ = univ
+        self.skip_missing = skip_missing
+
+        if self.split == 'test':
+            # Test set evaluation is performed at 10 frames per second.
+            self.sample_rate = 10
+        else:
+            # Evaluation on training/validation data is performed at the full 50 frames per second.
+            self.sample_rate = 50
+
+        self.clips = aspset.clips(self.split)
+
+    def __len__(self):
+        return len(self.clips)
+
+    def __iter__(self):
+        for clip in self.clips:
+            # Find which camera angles are to be used for evaluating this clip.
+            camera_ids = self.aspset.cameras_for_clip[(clip.subject_id, clip.clip_id)]
+            # Prediction files don't need to specify the camera ID when there is only one possibility.
+            include_unknown_camera = len(camera_ids) == 1
+
+            # Load and prepare the ground truth 3D joint annotations.
+            gt_mocap = clip.load_mocap()
+            gt_skeleton = skeleton_registry[gt_mocap.skeleton_name]
+            gt_joints_3d = get_joint_positions(gt_mocap, self.sample_rate)
+            gt_joints_3d = skeleton_converter.convert(gt_joints_3d, gt_skeleton, self.skeleton)
+            if self.univ:
+                gt_joints_3d = to_univ_scale(gt_joints_3d, self.skeleton)
+
+            # Load predictions.
+            pred_joints_3d_by_camera = {}
+            for camera_id in camera_ids:
+                try:
+                    pred_mocap = find_and_load_prediction(self.preds_dir, clip.subject_id,
+                                                          clip.clip_id, camera_id,
+                                                          include_unknown_camera)
+                except:
+                    if self.skip_missing:
+                        continue
+                    else:
+                        raise
+                pred_skeleton = skeleton_registry[pred_mocap.skeleton_name]
+                pred_joints_3d = get_joint_positions(pred_mocap, self.sample_rate)
+                pred_joints_3d = skeleton_converter.convert(pred_joints_3d, pred_skeleton, self.skeleton)
+                pred_joints_3d_by_camera[camera_id] = pred_joints_3d
+
+            # Yield predictions for each camera and the ground truth.
+            yield pred_joints_3d_by_camera, gt_joints_3d
