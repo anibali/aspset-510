@@ -23,6 +23,8 @@ def argument_parser():
     parser.add_argument('--split', type=str, required=True,
                         help='split of the dataset to evaluate on (e.g. train, val, or test)')
     add_boolean_argument(parser, 'univ', description='universal pose scale', default=False)
+    add_boolean_argument(parser, 'skip_missing', description='skip missing prediction files',
+                         default=False)
     return parser
 
 
@@ -54,6 +56,8 @@ def main(args):
         # Evaluation on training/validation data is performed at the full 50 frames per second.
         sample_rate = 50
 
+    n_prediction_files = 0
+
     for clip in tqdm(clips, leave=True, ascii=True):
         # Find which camera angles are to be used for evaluating this clip.
         camera_ids = aspset.cameras_for_clip[(clip.subject_id, clip.clip_id)]
@@ -70,12 +74,20 @@ def main(args):
 
         # Load and add predictions to the evaluation.
         for camera_id in camera_ids:
-            pred_mocap = find_and_load_prediction(preds_dir, clip.subject_id, clip.clip_id,
-                                                  camera_id, include_unknown_camera)
+            try:
+                pred_mocap = find_and_load_prediction(preds_dir, clip.subject_id, clip.clip_id,
+                                                      camera_id, include_unknown_camera)
+            except:
+                if opts.skip_missing:
+                    continue
+                raise
             pred_skeleton = skeleton_registry[pred_mocap.skeleton_name]
             pred_joints_3d = skeleton_converter.convert(get_joint_positions(pred_mocap, sample_rate),
                                                         pred_skeleton, skeleton)
             evaluator.add(pred_joints_3d, gt_joints_3d)
+            n_prediction_files += 1
+
+    print(f'Found {len(evaluator)} poses in {n_prediction_files} prediction files.\n')
 
     # Print the evaluation results to stdout.
     evaluator.print_results()

@@ -50,6 +50,9 @@ class Joints3dEvaluator:
         self.pa_actual_poses = []
         self.expected_poses = []
 
+    def __len__(self):
+        return len(self.expected_poses)
+
     def add(self, actual, expected):
         actual = np.asarray(actual, np.float32)
         expected = np.asarray(expected, np.float32)
