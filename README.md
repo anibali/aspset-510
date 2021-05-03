@@ -69,10 +69,11 @@ $ python src/aspset510/bin/browse_clips.py --data-dir=./data
 ![Screenshot of the clip browser GUI](docs/images/browse_clips_gui.jpg)
 
 
-## Acknowledgments
+## Acknowledgments and license
 
 ASPset-510 is brought to you by [La Trobe University](https://www.latrobe.edu.au/) and the
-[Australian Institute of Sport](https://www.ais.gov.au/).
+[Australian Institute of Sport](https://www.ais.gov.au/). It is dedicated to the public
+domain under the [CC0 1.0 license](https://creativecommons.org/publicdomain/zero/1.0/).
 
 If you find this dataset useful for your own work, please cite the following paper:
 
