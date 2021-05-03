@@ -73,3 +73,15 @@ $ python src/aspset510/bin/browse_clips.py --data-dir=./data
 
 ASPset-510 is brought to you by [La Trobe University](https://www.latrobe.edu.au/) and the
 [Australian Institute of Sport](https://www.ais.gov.au/).
+
+If you find this dataset useful for your own work, please cite the following paper:
+
+```
+@article{nibali2021aspset,
+  title={{ASPset}: An Outdoor Sports Pose Video Dataset With {3D} Keypoint Annotations},
+  author={Nibali, Aiden and Millward, Joshua and He, Zhen and Morgan, Stuart},
+  journal={Image and Vision Computing},
+  year={2021},
+  publisher={Elsevier}
+}
+```
