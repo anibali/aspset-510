@@ -15,7 +15,7 @@ def argument_parser():
                         help='path to the base dataset directory')
     parser.add_argument('--archive-dir', type=str, default=None,
                         help='path to the downloaded dataset archives (default: {DATA_DIR}/archives)')
-    parser.add_argument('--mirror', type=str, required=True,
+    parser.add_argument('--mirror', type=str, default='https://archive.org/download/aspset510',
                         help='base URL of the archive mirror')
     add_boolean_argument(parser, 'skip_existing', default=True,
                          description='skip downloading and extracting archives which have been extracted previously')
