@@ -82,7 +82,11 @@ If you find this dataset useful for your own work, please cite the following pap
   title={{ASPset}: An Outdoor Sports Pose Video Dataset With {3D} Keypoint Annotations},
   author={Nibali, Aiden and Millward, Joshua and He, Zhen and Morgan, Stuart},
   journal={Image and Vision Computing},
+  pages={104196},
   year={2021},
+  issn={0262-8856},
+  doi={https://doi.org/10.1016/j.imavis.2021.104196},
+  url={https://www.sciencedirect.com/science/article/pii/S0262885621001013},
   publisher={Elsevier}
 }
 ```
