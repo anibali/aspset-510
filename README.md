@@ -8,6 +8,10 @@ subjects performing 30 sports-related actions each, for a total of 510 action cl
 
 This repository contains Python code for working with ASPset-510.
 
+If you don't want to use these scripts and would prefer to directly download the data yourself,
+ASPset-510 is available on the Internet Archive at
+[https://archive.org/details/aspset510](https://archive.org/details/aspset510).
+
 
 ## Requirements
 
