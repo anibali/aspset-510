@@ -22,6 +22,8 @@ ALL_PARTITION_FIELDS = MappingProxyType({
 CURRENT_VERSION = 'v1'
 # Buffer size for chunks of a file held in memory.
 _BUFSIZE = shutil.COPY_BUFSIZE if hasattr(shutil, 'COPY_BUFSIZE') else 65536
+# Names for archives that don't belong in a particular data partition.
+COMMON_ARCHIVES = ['splits']
 
 
 def read_checksums() -> Mapping[str, str]:
@@ -41,7 +43,7 @@ def collect_archives(
     base_url: str,
     partition_fields: Mapping[str, Collection[str]] = ALL_PARTITION_FIELDS,
     version: str = CURRENT_VERSION,
-) -> Collection:
+) -> list:
     """Get information about each archive associated with `partition_fields`.
 
     Args:
@@ -51,7 +53,7 @@ def collect_archives(
         version: Version of the archives to consider.
 
     Returns:
-        A collection of objects describing each archive.
+        A list of objects describing each archive.
     """
     checksums = read_checksums()
     if not base_url.endswith('/'):
@@ -67,6 +69,35 @@ def collect_archives(
                 'partition': partition,
                 'field': field,
             })
+    return archive_infos
+
+
+def collect_common_archives(
+    base_url: str,
+    version: str = CURRENT_VERSION,
+) -> list:
+    """Get information about each archive not associated with a particular partition.
+
+    Args:
+        base_url (str): Base URL of a remote host providing the archives.
+        version: Version of the archives to consider.
+
+    Returns:
+        A list of objects describing each archive.
+    """
+    checksums = read_checksums()
+    if not base_url.endswith('/'):
+        base_url += '/'
+    archive_infos = []
+    for archive_name in COMMON_ARCHIVES:
+        filename = f'aspset510_{version}_common-{archive_name}.tar.gz'
+        archive_infos.append({
+            'filename': filename,
+            'remote_url': urljoin(base_url, filename),
+            'checksum': checksums[filename],
+            'partition': '',
+            'field': '',
+        })
     return archive_infos
 
 
@@ -219,6 +250,9 @@ def extracted_files_exist(
     Returns:
         `True` if the extracted files exist, `False` otherwise.
     """
+    if not partition or not field:
+        # We can only check fields that belong to a particular partition.
+        return False
     data_dir = Path(data_dir)
     return data_dir.joinpath(partition, field).is_dir()
 
@@ -257,6 +291,7 @@ def download_and_extract_archives(
     archive_dir.mkdir(exist_ok=True, parents=True)
     # Get the archives to download and extract.
     archive_infos = collect_archives(base_url, partition_fields, version)
+    archive_infos.extend(collect_common_archives(base_url, version))
     for archive_info in archive_infos:
         filename = archive_info['filename']
         url = archive_info['remote_url']
