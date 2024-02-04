@@ -1,3 +1,5 @@
+**UPDATE 2024-02-04: Test set annotations have now been released. [Click to download](https://archive.org/download/aspset510/aspset510_v1_test-joints_3d.tar.gz).**
+
 # ASPset-510
 
 ![ASPset logo](docs/images/aspset_logo.svg)
